@@ -334,6 +334,7 @@ module P = struct
     | Ppat_unpack s -> unpack ~loc ~attrs (map_loc sub s)
     | Ppat_exception p -> exception_ ~loc ~attrs (sub # pat p)
     | Ppat_extension x -> extension ~loc ~attrs (sub # extension x)
+    | Ppat_effect _ -> failwith "Ast_mapper_class.P.Ppat_effect"
 end
 
 module CE = struct
@@ -571,4 +572,5 @@ let to_mapper this =
     value_binding = (fun _ -> this # value_binding);
     value_description = (fun _ -> this # value_description);
     with_constraint = (fun _ -> this # with_constraint);
+    effect_constructor = (fun _ -> failwith "Ast_mapper_class.to_mapper");
   }
