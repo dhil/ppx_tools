@@ -103,6 +103,31 @@ module T = struct
       ~loc:(sub # location pext_loc)
       ~attrs:(sub # attributes pext_attributes)
 
+  let map_effect_handler sub
+      {peh_loc;
+       peh_cases} =
+    Te.effect_handler
+      (sub # cases peh_cases)
+      ~loc:(sub # location peh_loc)
+
+  let map_effect_constructor_kind sub = function
+      Peff_decl(ctl, cto, handler) ->
+      Peff_decl(List.map (sub # typ) ctl,
+                sub # typ cto,
+                map_opt (map_effect_handler sub) handler)
+    | Peff_rebind li ->
+        Peff_rebind (map_loc sub li)
+
+  let map_effect_constructor sub
+      {peff_name;
+       peff_kind;
+       peff_loc;
+       peff_attributes} =
+    Te.effect_constructor
+      (map_loc sub peff_name)
+      (map_effect_constructor_kind sub peff_kind)
+      ~loc:(sub # location peff_loc)
+      ~attrs:(sub # attributes peff_attributes)
 
 end
 
@@ -189,6 +214,7 @@ module MT = struct
     | Psig_extension (x, attrs) ->
         extension ~loc (sub # extension x) ~attrs:(sub # attributes attrs)
     | Psig_attribute x -> attribute ~loc (sub # attribute x)
+    | Psig_effect ed -> effect_ ~loc (sub # effect_constructor ed)
 end
 
 
@@ -235,6 +261,7 @@ module M = struct
     | Pstr_extension (x, attrs) ->
         extension ~loc (sub # extension x) ~attrs:(sub # attributes attrs)
     | Pstr_attribute x -> attribute ~loc (sub # attribute x)
+    | Pstr_effect ed -> effect_ ~loc (sub # effect_constructor ed)
 end
 
 module E = struct
@@ -319,8 +346,8 @@ module P = struct
     | Ppat_constant c -> constant ~loc ~attrs c
     | Ppat_interval (c1, c2) -> interval ~loc ~attrs c1 c2
     | Ppat_tuple pl -> tuple ~loc ~attrs (List.map (sub # pat) pl)
-    | Ppat_construct (l, p) ->
-        construct ~loc ~attrs (map_loc sub l) (map_opt (sub # pat) p)
+    | Ppat_construct (l, total, p) ->
+        construct ~loc ~attrs ~total (map_loc sub l) (map_opt (sub # pat) p)
     | Ppat_variant (l, p) -> variant ~loc ~attrs l (map_opt (sub # pat) p)
     | Ppat_record (lpl, cf) ->
         record ~loc ~attrs (List.map (map_tuple (map_loc sub) (sub # pat)) lpl)
@@ -334,7 +361,7 @@ module P = struct
     | Ppat_unpack s -> unpack ~loc ~attrs (map_loc sub s)
     | Ppat_exception p -> exception_ ~loc ~attrs (sub # pat p)
     | Ppat_extension x -> extension ~loc ~attrs (sub # extension x)
-    | Ppat_effect _ -> failwith "Ast_mapper_class.P.Ppat_effect"
+    | Ppat_effect (p1,p2) -> effect_ ~loc ~attrs (sub # pat p1) (sub # pat p2)
 end
 
 module CE = struct
@@ -431,6 +458,8 @@ class mapper =
 
     method type_extension = T.map_type_extension this
     method extension_constructor = T.map_extension_constructor this
+
+    method effect_constructor = T.map_effect_constructor this
 
     method value_description {pval_name; pval_type; pval_prim; pval_loc;
                               pval_attributes} =
@@ -572,5 +601,5 @@ let to_mapper this =
     value_binding = (fun _ -> this # value_binding);
     value_description = (fun _ -> this # value_description);
     with_constraint = (fun _ -> this # with_constraint);
-    effect_constructor = (fun _ -> failwith "Ast_mapper_class.to_mapper");
+    effect_constructor = (fun _ -> this # effect_constructor);
   }

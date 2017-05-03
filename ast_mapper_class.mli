@@ -25,6 +25,7 @@ class mapper:
     method expr: expression -> expression
     method extension: extension -> extension
     method extension_constructor: extension_constructor -> extension_constructor
+    method effect_constructor: effect_constructor -> effect_constructor
     method include_declaration: include_declaration -> include_declaration
     method include_description: include_description -> include_description
     method label_declaration: label_declaration -> label_declaration
